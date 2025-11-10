@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PudoClient } from '@/lib/pudo-client';
+import { getPudoConfig } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,22 +13,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Initialize Pudo client
-    const apiKey = process.env.PUDO_API_KEY;
-    const apiUrl = process.env.PUDO_API_URL;
-    
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Pudo API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    const client = new PudoClient({
-      apiKey,
-      apiUrl,
-      isDevelopment: process.env.NODE_ENV === 'development',
-    });
+    // Initialize Pudo client with validated config
+    const config = getPudoConfig();
+    const client = new PudoClient(config);
 
     // Get all lockers
     const lockers = await client.getAllLockers(forceRefresh);

@@ -7,7 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PudoClient } from '@/lib/pudo-client';
 import { RequestBuilder } from '@/lib/request-builder';
 import { getContentsPayload } from '@/lib/bin-packing';
+import { getPudoConfig } from '@/lib/config';
 import type { CartItem, ShippingMethod, DEFAULT_BOX_SIZES } from '@/lib/types';
+import { DEFAULT_LOCKER_CODE } from '@/lib/types';
 
 interface RateRequestBody {
   items: CartItem[];
@@ -42,22 +44,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Pudo client
-    const apiKey = process.env.PUDO_API_KEY;
-    const apiUrl = process.env.PUDO_API_URL;
-    
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Pudo API key not configured' },
-        { status: 500 }
-      );
-    }
+    // Initialize Pudo client with validated config
+    const config = getPudoConfig();
+    const client = new PudoClient(config);
 
-    const client = new PudoClient({
-      apiKey,
-      apiUrl,
-      isDevelopment: process.env.NODE_ENV === 'development',
-    });
+    // Apply default locker if needed for D2L or L2L shipments
+    if ((method === 'D2L' || method === 'L2L') && !deliveryDetails.terminalId) {
+      deliveryDetails.terminalId = DEFAULT_LOCKER_CODE;
+      console.log(`Using default locker: ${DEFAULT_LOCKER_CODE}`);
+    }
 
     // Use default box sizes from types if not provided
     const { DEFAULT_BOX_SIZES } = await import('@/lib/types');

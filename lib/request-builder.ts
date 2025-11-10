@@ -22,7 +22,7 @@ export interface CollectionDetails {
   localArea?: string;
   city?: string;
   postalCode?: string;
-  province?: string;
+  zone?: string; // Province/state for the collection address
   country?: string;
   name?: string;
   email?: string;
@@ -37,7 +37,7 @@ export interface DeliveryDetails {
   suburb?: string;
   city?: string;
   postalCode?: string;
-  province?: string;
+  zone?: string; // Province/state for the delivery address
   country?: string;
   name?: string;
   email?: string;
@@ -65,17 +65,19 @@ export class RequestBuilder {
 
   /**
    * Build payload for rate request
+   * Note: API expects parcels as array containing a single parcel object
    */
   buildRatesRequest(): RateRequestPayload {
     return {
       collection_address: this.buildCollectionAddress(),
       delivery_address: this.buildDeliveryAddress(),
-      parcels: this.parcels,
+      parcels: [this.parcels[0]], // Wrap first parcel in array (API requirement)
     };
   }
 
   /**
    * Build payload for booking request
+   * Note: API expects parcels as array containing a single parcel object
    */
   buildBookingRequest(serviceLevelCode: string): BookingRequestPayload {
     return {
@@ -84,7 +86,7 @@ export class RequestBuilder {
       delivery_address: this.buildDeliveryAddress(),
       collection_address: this.buildCollectionAddress(),
       service_level_code: serviceLevelCode,
-      parcels: this.parcels,
+      parcels: [this.parcels[0]], // Wrap first parcel in array (API requirement)
     };
   }
 
@@ -105,18 +107,34 @@ export class RequestBuilder {
     }
 
     // Door to Locker or Door to Door
+    const streetAddress = this.collectionDetails.streetAddress || '';
+    const city = this.collectionDetails.city || '';
+    const postalCode = this.collectionDetails.postalCode || '';
+    const zone = this.collectionDetails.zone;
+    
+    // Determine address type based on company presence
+    const isBusinessAddress = !!this.collectionDetails.company;
+    
     const address: Address = {
-      streetAddress: this.collectionDetails.streetAddress || '',
-      localArea: this.collectionDetails.localArea || '',
-      city: this.collectionDetails.city || '',
-      postalCode: this.collectionDetails.postalCode || '',
+      type: isBusinessAddress ? 'business' : 'residential',
+      streetAddress,
+      localArea: this.collectionDetails.localArea || city, // Fallback to city
+      city,
+      postalCode,
+      zone,
       country: this.collectionDetails.country || 'South Africa',
+      enteredAddress: `${streetAddress}, ${city}, ${postalCode}`,
     };
+
+    // Only add company for business addresses
+    if (isBusinessAddress) {
+      address.company = this.collectionDetails.company;
+    }
 
     return address;
   }
 
-  /**
+    /**
    * Build delivery address (locker or street)
    */
   private buildDeliveryAddress(): Address | LockerAddress {
@@ -133,13 +151,29 @@ export class RequestBuilder {
     }
 
     // Locker to Door or Door to Door
+    const streetAddress = this.deliveryDetails.streetAddress || '';
+    const city = this.deliveryDetails.city || '';
+    const postalCode = this.deliveryDetails.postalCode || '';
+    const zone = this.deliveryDetails.zone;
+    
+    // Determine address type based on company presence
+    const isBusinessAddress = !!this.deliveryDetails.company;
+    
     const address: Address = {
-      streetAddress: this.deliveryDetails.streetAddress || '',
-      localArea: this.deliveryDetails.localArea || this.deliveryDetails.city || '',
-      city: this.deliveryDetails.city || '',
-      postalCode: this.deliveryDetails.postalCode || '',
+      type: isBusinessAddress ? 'business' : 'residential',
+      streetAddress,
+      localArea: this.deliveryDetails.localArea || city, // Fallback to city
+      city,
+      postalCode,
+      zone,
       country: this.deliveryDetails.country || 'South Africa',
+      enteredAddress: `${streetAddress}, ${city}, ${postalCode}`,
     };
+
+    // Only add company for business addresses
+    if (isBusinessAddress) {
+      address.company = this.deliveryDetails.company;
+    }
 
     return address;
   }

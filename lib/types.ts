@@ -27,13 +27,16 @@ export interface CartItem {
 }
 
 export interface Address {
+  type?: 'residential' | 'business';
   streetAddress: string;
   localArea?: string;
   suburb?: string;
   city: string;
   postalCode: string;
-  province?: string;
+  zone?: string; // Use 'zone' to match PHP (province/state)
   country: string;
+  company?: string;
+  enteredAddress?: string;
 }
 
 export interface LockerAddress {
@@ -146,6 +149,44 @@ export interface Locker {
 export interface LockerMap {
   [code: string]: Locker;
 }
+
+// Default locker code for fallback
+export const DEFAULT_LOCKER_CODE = 'CG54';
+
+// Default locker (Sasol Rivonia Uplifted) - used as fallback
+export const DEFAULT_LOCKER: Locker = {
+  code: 'CG54',
+  name: 'Sasol Rivonia Uplifted',
+  latitude: '-26.049703',
+  longitude: '28.059084',
+  openinghours: [
+    { day: 'Monday', open_time: '08:00:00', close_time: '17:00:00' },
+    { day: 'Tuesday', open_time: '08:00:00', close_time: '17:00:00' },
+    { day: 'Wednesday', open_time: '08:00:00', close_time: '17:00:00' },
+    { day: 'Thursday', open_time: '08:00:00', close_time: '17:00:00' },
+    { day: 'Friday', open_time: '08:00:00', close_time: '17:00:00' },
+    { day: 'Saturday', open_time: '08:00:00', close_time: '13:00:00' },
+    { day: 'Sunday', open_time: '08:00:00', close_time: '13:00:00' },
+    { day: 'Public Holidays', open_time: '08:00:00', close_time: '13:00:00' },
+  ],
+  address: '375 Rivonia Rd, Rivonia, Sandton, 2191, South Africa',
+  type: {
+    id: 2,
+    name: 'Locker',
+  },
+  place: {
+    placeNumber: '',
+    town: 'Sandton',
+    postalCode: '2191',
+  },
+  lstTypesBoxes: [
+    { id: 6, name: 'V4-XS', type: '10', width: 17, height: 8, length: 60, weight: 2 },
+    { id: 4, name: 'V4-S', type: '11', width: 41, height: 8, length: 60, weight: 5 },
+    { id: 7, name: 'V4-M', type: '12', width: 41, height: 19, length: 60, weight: 10 },
+    { id: 3, name: 'V4-L', type: '13', width: 41, height: 41, length: 60, weight: 15 },
+    { id: 8, name: 'V4-XL', type: '14', width: 41, height: 69, length: 60, weight: 20 },
+  ],
+};
 
 // Default box sizes (Pudo standard boxes in mm, converted to cm)
 export const DEFAULT_BOX_SIZES: BoxSize[] = [

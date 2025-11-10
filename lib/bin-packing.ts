@@ -33,11 +33,16 @@ const LENGTH_FACTORS: { [unit: string]: number } = {
 
 /**
  * Main function to calculate bin packing payload
+ * @param items - Cart items to pack
+ * @param globalParcels - Available box sizes
+ * @param waybillDescriptionOverride - Whether to hide product names on waybill
+ * @param unit - Unit of measurement for dimensions (defaults to 'cm')
  */
 export function getContentsPayload(
   items: CartItem[],
   globalParcels: BoxSize[],
-  waybillDescriptionOverride: boolean = false
+  waybillDescriptionOverride: boolean = false,
+  unit: 'cm' | 'mm' = 'cm'
 ): BinPackingResult[] {
   const r1: BinPackingResult[] = [];
   let j = 0;
@@ -45,8 +50,8 @@ export function getContentsPayload(
   // Get default product size
   const [parcels, defaultProduct, globalFlyer] = getGlobalParcels(globalParcels);
 
-  // Process all items
-  const allItems = getAllItems(items);
+  // Process all items with unit conversion
+  const allItems = getAllItems(items, unit);
 
   // Categorize items
   const [tooBigItems, fittingItems, fitsFlyer] = getFittingItems(
@@ -87,9 +92,18 @@ function getGlobalParcels(globalParcels: BoxSize[]): [BoxSize[], BoxSize | null,
 
   const globalFlyer = globalParcels[0] ?? null;
 
-  // Sort by largest dimension ascending
+  // Sort by largest dimension ascending (matching PHP behavior)
   if (globalParcels.length > 1) {
-    globalParcels.sort((a, b) => a.length - b.length);
+    globalParcels.sort((a, b) => {
+      // Sort each box's dimensions descending to get largest first
+      const aDims = [a.length, a.width, a.height].sort((x, y) => y - x);
+      const bDims = [b.length, b.width, b.height].sort((x, y) => y - x);
+      
+      // Compare largest dimensions first, then second, then third
+      if (aDims[0] !== bDims[0]) return aDims[0] - bDims[0];
+      if (aDims[1] !== bDims[1]) return aDims[1] - bDims[1];
+      return aDims[2] - bDims[2];
+    });
   }
 
   return [globalParcels, defaultProduct, globalFlyer];
@@ -97,8 +111,12 @@ function getGlobalParcels(globalParcels: BoxSize[]): [BoxSize[], BoxSize | null,
 
 /**
  * Convert cart items to processed items with dimensions
+ * @param items - Cart items to process
+ * @param unit - Unit of measurement for dimensions (defaults to 'cm')
  */
-function getAllItems(items: CartItem[]): ProcessedItem[] {
+function getAllItems(items: CartItem[], unit: 'cm' | 'mm' = 'cm'): ProcessedItem[] {
+  const lengthFactor = unit === 'cm' ? 10 : 1;
+  
   return items.map((item) => {
     const dimensions = item.dimensions;
     const volume =
@@ -107,9 +125,9 @@ function getAllItems(items: CartItem[]): ProcessedItem[] {
     return {
       item,
       dimensions: {
-        height: dimensions.height * 10, // Convert cm to mm
-        width: dimensions.width * 10,
-        length: dimensions.length * 10,
+        height: Math.round(dimensions.height * lengthFactor), // Convert and round to integer
+        width: Math.round(dimensions.width * lengthFactor),
+        length: Math.round(dimensions.length * lengthFactor),
         weight: dimensions.weight,
       },
       volume,
@@ -264,7 +282,7 @@ function poolIfPossible(fittingItems: FittingItemMap): FittingItemMap {
         slug: grpName,
         dimensions: {
           ...grpDimensions,
-          weight: grpMass / grpQuantity,
+          weight: Math.round(grpMass / grpQuantity), // Round average weight to integer
         },
         item: {
           ...fittings[idx].item.item,
@@ -300,6 +318,7 @@ function doesFitGlobalParcels(
 
 /**
  * Check if item fits in a specific parcel
+ * Checks both dimensions AND weight constraints
  */
 function doesFitParcel(item: ProcessedItem, parcel: BoxSize): boolean {
   if (!parcel) return false;
@@ -315,11 +334,17 @@ function doesFitParcel(item: ProcessedItem, parcel: BoxSize): boolean {
       item.dimensions.height,
     ].sort((a, b) => b - a);
 
-    return (
+    // Check weight constraint
+    const fitsWeight = item.dimensions.weight <= parcel.maxWeight;
+    
+    // Check dimensional constraints
+    const fitsDimensions = (
       productDims[0] <= parcelDims[0] &&
       productDims[1] <= parcelDims[1] &&
       productDims[2] <= parcelDims[2]
     );
+
+    return fitsWeight && fitsDimensions;
   }
 
   return true;

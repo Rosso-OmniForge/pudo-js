@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PudoClient } from '@/lib/pudo-client';
 import { RequestBuilder } from '@/lib/request-builder';
+import { getPudoConfig } from '@/lib/config';
 import type { ShippingMethod } from '@/lib/types';
+import { DEFAULT_LOCKER_CODE } from '@/lib/types';
 
 interface BookingRequestBody {
   method: ShippingMethod;
@@ -69,22 +71,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Pudo client
-    const apiKey = process.env.PUDO_API_KEY;
-    const apiUrl = process.env.PUDO_API_URL;
-    
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Pudo API key not configured' },
-        { status: 500 }
-      );
+    // Apply default locker if needed for D2L or L2L shipments
+    if ((method === 'D2L' || method === 'L2L') && !deliveryDetails.terminalId) {
+      deliveryDetails.terminalId = DEFAULT_LOCKER_CODE;
+      console.log(`Using default locker for delivery: ${DEFAULT_LOCKER_CODE}`);
     }
 
-    const client = new PudoClient({
-      apiKey,
-      apiUrl,
-      isDevelopment: process.env.NODE_ENV === 'development',
-    });
+    // Initialize Pudo client with validated config
+    const config = getPudoConfig();
+    const client = new PudoClient(config);
 
     // Build parcel
     const parcelData = RequestBuilder.createParcel(

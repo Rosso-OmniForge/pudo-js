@@ -15,6 +15,14 @@ import type {
   LockerMap,
   Locker,
 } from './types';
+import {
+  RateRequestPayloadSchema,
+  BookingRequestPayloadSchema,
+  RateResponseSchema,
+  BookingResponseSchema,
+  LockerMapSchema,
+  validateData,
+} from './validation';
 
 const API_ENDPOINTS = {
   GET_ALL_LOCKERS: '/api/v1/lockers-data',
@@ -28,6 +36,8 @@ export class PudoClient {
   private apiKey: string;
   private apiUrl: string;
   private lockers: LockerMap | null = null;
+  private lockersExpiry: number = 0;
+  private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
   constructor(config: PudoConfig) {
     this.apiKey = config.apiKey;
@@ -41,35 +51,57 @@ export class PudoClient {
    * Get shipping rates for a given parcel configuration
    */
   async getRates(payload: RateRequestPayload): Promise<RateResponse> {
-    const response = await this.callApi('POST', API_ENDPOINTS.GET_RATES, payload);
-    return response as RateResponse;
+    // Validate request payload
+    const validatedPayload = validateData(RateRequestPayloadSchema, payload);
+    
+    const response = await this.callApi('POST', API_ENDPOINTS.GET_RATES, validatedPayload);
+    
+    // Validate response
+    return validateData(RateResponseSchema, response);
   }
 
   /**
    * Create a shipment booking
    */
   async createBooking(payload: BookingRequestPayload): Promise<BookingResponse> {
-    const response = await this.callApi('POST', API_ENDPOINTS.BOOKING_REQUEST, payload);
-    return response as BookingResponse;
+    // Validate request payload
+    const validatedPayload = validateData(BookingRequestPayloadSchema, payload);
+    
+    const response = await this.callApi('POST', API_ENDPOINTS.BOOKING_REQUEST, validatedPayload);
+    
+    // Validate response
+    return validateData(BookingResponseSchema, response);
   }
 
   /**
-   * Get all available Pudo lockers
+   * Get all available Pudo lockers with 24-hour cache
    */
   async getAllLockers(forceRefresh: boolean = false): Promise<LockerMap> {
-    // Return cached lockers if available
-    if (this.lockers && !forceRefresh) {
-      return this.lockers;
-    }
-
-    const response = await this.callApi('GET', API_ENDPOINTS.GET_ALL_LOCKERS);
+    const now = Date.now();
     
-    if (Array.isArray(response)) {
-      this.lockers = this.mapLockers(response);
+    // Return cached lockers if available and not expired
+    if (this.lockers && !forceRefresh && now < this.lockersExpiry) {
       return this.lockers;
     }
 
-    throw new Error('Invalid response format from lockers endpoint');
+    try {
+      const response = await this.callApi('GET', API_ENDPOINTS.GET_ALL_LOCKERS);
+      
+      if (Array.isArray(response)) {
+        this.lockers = this.mapLockers(response);
+        this.lockersExpiry = now + PudoClient.CACHE_DURATION; // Cache for 24 hours
+        return this.lockers;
+      }
+
+      throw new Error('Invalid response format from lockers endpoint');
+    } catch (error) {
+      // If API call fails and we have cached data, return it even if expired
+      if (this.lockers) {
+        console.warn('Using stale locker cache due to API error:', error);
+        return this.lockers;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -150,10 +182,45 @@ export class PudoClient {
       const response = await fetch(url, options);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Pudo API error (${response.status}): ${errorText}`
-        );
+        // Try to extract detailed error from Pudo API response
+        let errorMessage = `Pudo API error (${response.status})`;
+        
+        try {
+          const errorData = await response.json();
+          
+          // Pudo API may return: { error: { message: "...", errors: [...] } }
+          if (errorData.error) {
+            if (errorData.error.message) {
+              errorMessage = errorData.error.message;
+            }
+            
+            // Include validation errors if present
+            if (Array.isArray(errorData.error.errors) && errorData.error.errors.length > 0) {
+              const errors = errorData.error.errors.join(', ');
+              errorMessage = `${errorMessage}: ${errors}`;
+            }
+          } 
+          // Or directly: { message: "..." }
+          else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+          // Or just a string error
+          else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          }
+        } catch {
+          // If JSON parsing fails, try plain text
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = `${errorMessage}: ${errorText}`;
+            }
+          } catch {
+            // Keep default error message if both fail
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const contentType = response.headers.get('content-type');
@@ -164,6 +231,10 @@ export class PudoClient {
       return response.text();
     } catch (error) {
       if (error instanceof Error) {
+        // Re-throw API errors as-is, wrap network errors
+        if (error.message.includes('Pudo API error')) {
+          throw error;
+        }
         throw new Error(`Pudo API request failed: ${error.message}`);
       }
       throw error;
