@@ -1,3 +1,6 @@
+**Pudo and The Courier Guy are trademarks of The Courier Guy (Pty) Ltd. This is an independent implementation for Next.js/ERPNext platforms and is not officially endorsed by The Courier Guy.**
+
+
 # Pudo Shipping for Next.js
 
 A complete TypeScript/Next.js implementation of Pudo (The Courier Guy) shipping integration, ported from the WooCommerce plugin. Works seamlessly with ERPNext/Frappe backends or any Next.js e-commerce platform.
@@ -65,8 +68,6 @@ All CRITICAL and HIGH priority issues from the comprehensive audit have been res
 - Dimension `unit` parameter now required ('cm' or 'mm')
 - All API methods validate input/output (throws detailed errors)
 - Use `getPudoConfig()` instead of direct `process.env` access
-
-See `AUDIT_REPORT.md` and `FIX_SUMMARY.md` for complete details.
 
 ## Shipping Methods
 
