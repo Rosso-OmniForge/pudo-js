@@ -1,0 +1,15 @@
+{
+  "name": "pudo/pudo-shipping-for-woocommerce",
+  "description": "description",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "App Inlet",
+      "email": "info@appinlet.com"
+    }
+  ],
+  "require": {
+    "pudo/pudo-common": "v0.5.1"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "pudo-nextjs",
+  "version": "1.0.0",
+  "description": "Pudo Shipping integration for Next.js with ERPNext/Frappe backend",
+  "main": "lib/index.ts",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "pudo",
+    "shipping",
+    "nextjs",
+    "erpnext",
+    "frappe",
+    "south-africa",
+    "courier"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}

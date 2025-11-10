@@ -1,0 +1,60 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "b37eb1548c58fda19731d37ce03d8d94",
+    "packages": [
+        {
+            "name": "pudo/pudo-common",
+            "version": "v0.5.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/The-Courier-Guy/PUDO_Common.git",
+                "reference": "e3c80e0d2b9aa0de2dc5f3899a4235ab9f6f6d86"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/The-Courier-Guy/PUDO_Common/zipball/e3c80e0d2b9aa0de2dc5f3899a4235ab9f6f6d86",
+                "reference": "e3c80e0d2b9aa0de2dc5f3899a4235ab9f6f6d86",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Pudo\\Common\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "App Inlet (Pty) Ltd",
+                    "email": "info@appinlet.com"
+                }
+            ],
+            "description": "PUDO common class for modules.",
+            "homepage": "https://github.com/The-Courier-Guy/PUDO_Common",
+            "support": {
+                "issues": "https://github.com/The-Courier-Guy/PUDO_Common/issues",
+                "source": "https://github.com/The-Courier-Guy/PUDO_Common/tree/v0.5.1"
+            },
+            "time": "2025-04-04T16:25:02+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "plugin-api-version": "2.2.0"
+}
